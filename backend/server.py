@@ -257,6 +257,8 @@ def get_stats():
         "pending_drafts": pending,
         "replied_today": replied,
         "blocked_users": blocked,
+        "encryption_key_set": bool(ENC_KEY_HEX),
+        "of_api_key_set": bool(OF_API_KEY),
     }
 
 
@@ -560,13 +562,12 @@ def approve_draft(did: int, body: Optional[DraftBody] = None):
     conn.close()
     if OF_API_KEY:
         try:
-            import httpx as hx
-            hx.post(
-                f"{OF_BASE}/{t['of_user_id']}/chats/{d['fan_user_id']}/messages",
-                headers={"Authorization": f"Bearer {OF_API_KEY}", "Accept": "application/json"},
-                json={"text": reply},
-                timeout=30,
-            )
+            with httpx.Client(timeout=30) as hc:
+                hc.post(
+                    f"{OF_BASE}/{t['of_user_id']}/chats/{d['fan_user_id']}/messages",
+                    headers={"Authorization": f"Bearer {OF_API_KEY}", "Accept": "application/json"},
+                    json={"text": reply},
+                )
         except Exception as e:
             return {"ok": True, "sent": False, "error": str(e)}
     return {"ok": True, "sent": bool(OF_API_KEY)}

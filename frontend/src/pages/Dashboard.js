@@ -115,6 +115,23 @@ export default function Dashboard({ onStatsChange }) {
         </Button>
       </motion.div>
 
+      {/* Config warnings */}
+      {stats && (!stats.encryption_key_set || !stats.of_api_key_set) && (
+        <motion.div variants={fadeUp} custom={1.5} initial="hidden" animate="show">
+          <div className="bg-amber-400/10 border border-amber-400/20 rounded-xl p-4 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+            <div className="text-sm space-y-0.5">
+              <p className="font-medium text-amber-300">Configuration required</p>
+              <p className="text-amber-200/70">
+                {!stats.encryption_key_set && 'ENCRYPTION_KEY not set — credentials will not be stored securely. '}
+                {!stats.of_api_key_set && 'OF_API_KEY not set — chat fetching and sending will be unavailable. '}
+                Add these to <code className="bg-black/30 px-1 rounded text-xs">backend/.env</code>.
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       {/* Bot Status Card */}
       <motion.div variants={fadeUp} custom={1} initial="hidden" animate="show">
         <Card data-testid="bot-status-card">
