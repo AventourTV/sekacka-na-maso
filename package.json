@@ -1,0 +1,23 @@
+{
+  "name": "ofm-bot",
+  "version": "1.0.0",
+  "description": "Multi-tenant OnlyFans chat automation bot powered by Claude",
+  "main": "main.js",
+  "scripts": {
+    "start": "node main.js",
+    "tenant": "node tenantManager.js",
+    "export": "node exportTrainingData.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.25.0",
+    "axios": "^1.7.0",
+    "axios-retry": "^4.0.0",
+    "better-sqlite3": "^11.0.0",
+    "dotenv": "^16.0.0",
+    "winston": "^3.11.0",
+    "yargs": "^17.7.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
