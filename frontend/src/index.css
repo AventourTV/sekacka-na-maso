@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Design Tokens ── */
+:root {
+  --bg: #0a0a0a;
+  --bg-elev-1: #0d0f12;
+  --bg-elev-2: #111318;
+  --card: #0f1115;
+  --surface: #111318;
+  --panel: #0f1216;
+  --border: rgba(255,255,255,0.06);
+  --border-strong: rgba(255,255,255,0.12);
+  --muted: #9aa0a6;
+  --text: #e5e7eb;
+  --text-dim: #c7ccd1;
+  --text-muted: #9ca3af;
+  --accent: #3b82f6;
+  --accent-strong: #2563eb;
+  --accent-contrast: #0b1220;
+  --ring: #1d4ed8;
+  --success: #22c55e;
+  --success-strong: #16a34a;
+  --danger: #ef4444;
+  --danger-strong: #dc2626;
+  --warning: #f59e0b;
+  --info: #38bdf8;
+  --shadow: 0 1px 0 rgba(255,255,255,0.04), 0 6px 24px rgba(0,0,0,0.35);
+}
+
+html, body, #root {
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+body {
+  font-family: 'IBM Plex Sans', ui-sans-serif, system-ui;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.font-heading {
+  font-family: 'Space Grotesk', ui-sans-serif, system-ui;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+
+/* Log line colours */
+.log-info  { color: #c7ccd1; }
+.log-warn  { color: #f59e0b; }
+.log-error { color: #ef4444; }
+.log-debug { color: #6b7280; }

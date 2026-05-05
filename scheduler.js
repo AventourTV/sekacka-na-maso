@@ -1,5 +1,5 @@
 'use strict';
-const { getEnabledTenants, getTenant, alreadyReplied, markReplied, queuePendingDraft } = require('./database');
+const { getEnabledTenants, getTenant, alreadyReplied, markReplied, queuePendingDraft, isBlocked } = require('./database');
 const { generateReply } = require('./claudeClient');
 const OFClient = require('./ofClient');
 const { getLogger, getTenantLogger } = require('./logger');
@@ -137,6 +137,12 @@ class TenantWorker {
 
     try {
       this._activeFanProcesses.add(fanId);
+
+    // Check if fan is blocked via the UI
+      if (isBlocked(tenant.id, fanId)) {
+        this.log.info(`Skipping ${name}: user is blocked in dashboard`);
+        return;
+      }
 
       // Diagnostic logs
       const unreadCount = chat?.unreadMessagesCount || chat?.unread_count || 0;

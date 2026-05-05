@@ -156,9 +156,16 @@ function updateDraftStatus(id, status, newReply = null) {
   }
 }
 
+function isBlocked(tenantId, fanUserId) {
+  return !!db().prepare(
+    'SELECT 1 FROM blocked_users WHERE tenant_id = ? AND fan_user_id = ?'
+  ).get(tenantId, String(fanUserId));
+}
+
 module.exports = {
   initDb, createTenant, getTenant, getTenantByName, getAllTenants,
   getEnabledTenants, updateTenant, deleteTenant,
   alreadyReplied, markReplied,
   queuePendingDraft, getPendingDrafts, getDraft, updateDraftStatus,
+  isBlocked,
 };

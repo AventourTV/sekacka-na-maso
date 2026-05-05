@@ -1,0 +1,54 @@
+{
+  "summary": "Full stack testing of OFM Dashboard. All 14 backend API tests pass. All 5 frontend pages load correctly with full CRUD functionality working.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "POST /api/tenants",
+        "issue": "When ENCRYPTION_KEY is empty, cookie/xbc/anthropic_key values are silently discarded (encrypt_val returns None). has_cookie, has_xbc, has_anthropic_key return false even when values were provided. This is by design but user should see a clear warning that ENCRYPTION_KEY must be set.",
+        "priority": "MEDIUM"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Start Bot",
+        "issue": "Start Bot button calls the API correctly but bot stays 'Stopped' because node main.js does not exist at /app/main.js. This is an environment/deployment issue, not a UI bug.",
+        "affected_selectors": ["[data-testid='bot-toggle-button']"]
+      }
+    ],
+    "design_issues": [
+      {
+        "screen": "Accounts list",
+        "issues": ["Cookie badge shows 'missing' in red whenever ENCRYPTION_KEY is not configured, which is always in this environment. Consider showing a global warning about missing ENCRYPTION_KEY instead of per-account badge."]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_api.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Set ENCRYPTION_KEY in backend/.env (64-char hex) to enable cookie/credential storage",
+    "Ensure node main.js exists at BOT_DIR for bot start/stop to work",
+    "Consider adding a global warning banner in UI when ENCRYPTION_KEY is not configured"
+  ],
+  "critical_code_review_comments": [
+    "ENCRYPTION_KEY is empty in .env - all tenant credentials (cookie, x-bc, anthropic key) are silently dropped on save. This is the main blocker for functional use.",
+    "Bot start calls `node main.js` at BOT_DIR=/app but no main.js exists - bot will always fail to start silently.",
+    "approve_draft uses sync httpx.post (hx.post) instead of async - this will block the event loop. Should use async httpx client.",
+    "server.py is 642 lines - acceptable but could be split into routers for maintainability."
+  ],
+  "updated_files": ["/app/backend/tests/test_api.py"],
+  "success_rate": {"backend": "100% (14/14)", "frontend": "100%"},
+  "seed_data_creation": "No seed data left; test tenant TEST_Creator was created and deleted during testing.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend API fully tested, all CRUD flows work. UI flows work. Core blocker is ENCRYPTION_KEY not set (credentials not persisted) and no node main.js (bot cannot start). SSE logs stream is connected (Live badge shown). Chats page shows account selector. No auth needed.",
+  "rca_of_issues": {
+    "cookie_not_stored": "encrypt_val() returns None when ENCRYPTION_KEY env var is empty string. The INSERT stores empty string ''. safe_tenant() then sees empty string as falsy -> has_cookie=False. Fix: set a valid 32-byte hex ENCRYPTION_KEY in backend/.env",
+    "bot_start_fails": "subprocess.Popen(['node', 'main.js'], cwd='/app') fails because /app/main.js does not exist. Bot reports 'started' with a PID but process immediately exits. Fix: ensure the Node.js bot script exists at BOT_DIR or update BOT_DIR."
+  }
+}
