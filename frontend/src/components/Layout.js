@@ -31,7 +31,7 @@ export function Layout({ children, pendingDrafts = 0 }) {
             className="font-semibold text-zinc-100 tracking-tight text-sm"
             style={{ fontFamily: "'Space Grotesk', sans-serif" }}
           >
-            OFM Control
+            Wulpko
           </span>
         </div>
 
@@ -64,7 +64,7 @@ export function Layout({ children, pendingDrafts = 0 }) {
 
         {/* Footer */}
         <div className="p-4 border-t border-white/5">
-          <p className="text-[11px] text-zinc-600">v1.0 · Multi-tenant</p>
+          <p className="text-[11px] text-zinc-600">Wulpko · v1.0</p>
         </div>
       </aside>
 
