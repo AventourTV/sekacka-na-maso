@@ -29,7 +29,6 @@ async function getPool() {
 async function initDb() {
   const pool = await getPool();
   
-  // Note: Using VARCHAR(255) for IDs to ensure compatibility as primary keys
   await pool.query(`
     CREATE TABLE IF NOT EXISTS tenants (
       id                         VARCHAR(255) PRIMARY KEY,
