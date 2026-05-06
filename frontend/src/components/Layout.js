@@ -23,15 +23,15 @@ export function Layout({ children, pendingDrafts = 0 }) {
         {/* Brand */}
         <div className="h-16 border-b border-white/5 flex items-center gap-2.5 px-5">
           <img
-            src="/ofm_logo.svg"
-            alt="OFM logo"
-            className="w-7 h-7 rounded-lg"
+            src="/favicon-32x32.png"
+            alt="Wulpko favicon"
+            className="w-7 h-7 rounded"
           />
           <span
             className="font-semibold text-zinc-100 tracking-tight text-base"
             style={{ fontFamily: "'Space Grotesk', sans-serif" }}
           >
-            Wulpko
+            Wulpko V2
           </span>
         </div>
 
@@ -64,7 +64,7 @@ export function Layout({ children, pendingDrafts = 0 }) {
 
         {/* Footer */}
         <div className="p-4 border-t border-white/5">
-          <p className="text-[11px] text-zinc-600">Wulpko · v1.0</p>
+          <p className="text-[11px] text-zinc-600">Wulpko V2 · v1.0</p>
         </div>
       </aside>
 
