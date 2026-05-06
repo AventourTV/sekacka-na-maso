@@ -105,10 +105,10 @@ app.get('/api/bot/status', async (req, res) => {
   });
 });
 
-app.post('/api/bot/start', async (req, res) => {
+async function startBot() {
   const botPid = botProcess ? botProcess.pid : await getBotPidFallback();
   if (botPid) {
-    return res.json({ status: 'already_running' });
+    return { status: 'already_running', pid: botPid };
   }
 
   log.info('Starting bot process...');
@@ -134,7 +134,16 @@ app.post('/api/bot/start', async (req, res) => {
     botProcess = null;
   });
 
-  res.json({ status: 'started', pid: botProcess.pid });
+  return { status: 'started', pid: botProcess.pid };
+}
+
+app.post('/api/bot/start', async (req, res) => {
+  try {
+    const result = await startBot();
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ detail: err.message });
+  }
 });
 
 app.post('/api/bot/stop', async (req, res) => {
@@ -507,11 +516,20 @@ async function startServer() {
     process.exit(1);
   }
 
-  app.listen(port, () => {
+  app.listen(port, async () => {
     console.log('=============================================');
     console.log(`[STARTUP] ✅ API Server listening on port ${port}`);
     console.log('=============================================');
     log.info(`API Server listening on port ${port}`);
+
+    // Auto-start bot on server start
+    try {
+      console.log('[STARTUP] Auto-starting bot process...');
+      const botResult = await startBot();
+      console.log(`[STARTUP] Bot auto-start result: ${botResult.status} (PID: ${botResult.pid || 'N/A'})`);
+    } catch (botErr) {
+      console.error('[STARTUP] ❌ Failed to auto-start bot:', botErr.message);
+    }
   });
 }
 
