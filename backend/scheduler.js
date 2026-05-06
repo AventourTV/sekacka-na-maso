@@ -139,7 +139,7 @@ class TenantWorker {
       this._activeFanProcesses.add(fanId);
 
     // Check if fan is blocked via the UI
-      if (isBlocked(tenant.id, fanId)) {
+      if (await isBlocked(tenant.id, fanId)) {
         this.log.info(`Skipping ${name}: user is blocked in dashboard`);
         return;
       }

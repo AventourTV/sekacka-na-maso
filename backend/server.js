@@ -116,13 +116,21 @@ app.post('/api/bot/start', async (req, res) => {
     cwd: config.BASE_DIR,
     env: process.env,
     detached: true,
-    stdio: 'ignore'
+    stdio: ['ignore', 'pipe', 'pipe']
+  });
+
+  // Forward bot stdout/stderr to parent so logs appear in Railway
+  botProcess.stdout.on('data', (data) => {
+    process.stdout.write(`[BOT] ${data}`);
+  });
+  botProcess.stderr.on('data', (data) => {
+    process.stderr.write(`[BOT:ERR] ${data}`);
   });
 
   botProcess.unref();
 
-  botProcess.on('exit', () => {
-    log.info('Bot process exited.');
+  botProcess.on('exit', (code) => {
+    log.info(`Bot process exited with code ${code}.`);
     botProcess = null;
   });
 
