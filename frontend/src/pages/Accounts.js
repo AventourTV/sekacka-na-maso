@@ -14,7 +14,7 @@ import {
 import { api } from '../api';
 
 const DEFAULT_FORM = {
-  name: '', of_user_id: '', of_cookie: '', of_x_bc: '',
+  name: '', of_user_id: '',
   anthropic_api_key: '', claude_model: 'claude-sonnet-4-6',
   system_prompt: 'You are a warm, flirtatious content creator chatting with a fan on OnlyFans. Keep replies short (1–3 sentences), personal, and engaging. Never break character or reveal you are an AI.',
   poll_interval_seconds: 15,
@@ -43,7 +43,7 @@ function TenantForm({ initial, onSave, onClose, loading }) {
   return (
     <form
       onSubmit={e => { e.preventDefault(); onSave(form); }}
-      className="space-y-4 max-h-[70vh] overflow-y-auto pr-1"
+      className="space-y-4 max-h-[70vh] overflow-y-auto px-[3px]"
       data-testid="tenant-form"
     >
       <div className="grid grid-cols-2 gap-3">
@@ -54,14 +54,6 @@ function TenantForm({ initial, onSave, onClose, loading }) {
           <Input value={form.of_user_id} onChange={e => set('of_user_id', e.target.value)} placeholder="acct_..." required data-testid="tenant-of-user-id-input" />
         </Field>
       </div>
-
-      <Field label="OF Cookie (auth_uid=...)">
-        <Input type="password" value={form.of_cookie} onChange={e => set('of_cookie', e.target.value)} placeholder="Leave blank to keep existing" data-testid="tenant-cookie-input" />
-      </Field>
-
-      <Field label="OF X-BC Header">
-        <Input type="password" value={form.of_x_bc} onChange={e => set('of_x_bc', e.target.value)} placeholder="Leave blank to keep existing" data-testid="tenant-xbc-input" />
-      </Field>
 
       <Field label="Anthropic API Key (optional — uses shared if blank)">
         <Input type="password" value={form.anthropic_api_key} onChange={e => set('anthropic_api_key', e.target.value)} placeholder="sk-ant-..." data-testid="tenant-anthropic-key-input" />
@@ -273,7 +265,7 @@ export default function Accounts() {
                         <DialogContent>
                           <DialogHeader><DialogTitle>Edit {t.name}</DialogTitle></DialogHeader>
                           <TenantForm
-                            initial={{ ...t, of_cookie: '', of_x_bc: '', anthropic_api_key: '' }}
+                            initial={{ ...t, anthropic_api_key: '' }}
                             onSave={handleUpdate}
                             onClose={() => setEditTenant(null)}
                             loading={formLoading}
