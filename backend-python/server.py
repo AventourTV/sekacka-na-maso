@@ -664,14 +664,14 @@ async def _generate_reply(tenant: dict, conversation: List[Dict[str, str]]) -> O
 @app.post("/api/tenants/{tid}/chats/{fan_id}/trigger-reply")
 async def trigger_reply(tid: str, fan_id: str):
     """Manually trigger the bot to generate an AI reply and send it to a fan."""
-    if not OF_API_KEY:
-        raise HTTPException(503, "OF_API_KEY not configured in backend .env")
-
     conn = get_db()
     t = conn.execute("SELECT * FROM tenants WHERE id=?", (tid,)).fetchone()
     conn.close()
     if not t:
         raise HTTPException(404, "Tenant not found")
+
+    if not OF_API_KEY:
+        raise HTTPException(503, "OF_API_KEY not configured in backend .env")
     tenant = row(t)
     of_uid = tenant["of_user_id"]
 

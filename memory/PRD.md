@@ -28,6 +28,7 @@ The bot is a multi-tenant Node.js script using Claude AI.
 - `/api/bot/start` `/api/bot/stop` `/api/bot/status` — control Node.js bot process
 - `/api/tenants` CRUD + enable/disable — full tenant management with AES-256-GCM crypto matching Node.js
 - `/api/tenants/{tid}/chats` `/api/tenants/{tid}/chats/{fan_id}/messages` — OF API proxy
+- `/api/tenants/{tid}/chats/{fan_id}/trigger-reply` **NEW** — manually trigger AI reply for a conversation
 - `/api/tenants/{tid}/block/{fan_id}` `/api/tenants/{tid}/block/{fan_id}` — block/unblock fans
 - `/api/drafts` GET + approve/reject/update — pending draft management
 - `/api/logs` GET + `/api/logs/stream` SSE — log streaming
@@ -35,7 +36,7 @@ The bot is a multi-tenant Node.js script using Claude AI.
 ### Frontend (React)
 - Dashboard — bot status card, stats grid, recent logs, start/stop button, config warnings
 - Accounts — CRUD with modal form (all settings incl. system prompt, delays, review mode)
-- Chats — tenant picker → chat list → conversation view → block/unblock
+- Chats — tenant picker → chat list → conversation view → block/unblock + **"Send AI Reply" button** (trigger manual AI reply)
 - Drafts — approve / edit / reject AI-generated replies
 - Logs — SSE live stream, filter by level (all/info/warn/error), auto-scroll
 
