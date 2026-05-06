@@ -23,9 +23,9 @@ export function Layout({ children, pendingDrafts = 0 }) {
         {/* Brand */}
         <div className="h-16 border-b border-white/5 flex items-center gap-2.5 px-5">
           <img
-            src="/favicon-32x32.png"
-            alt="Wulpko favicon"
-            className="w-7 h-7 rounded"
+            src="/ofm_symbol.svg"
+            alt="Wulpko logo"
+            className="w-7 h-7"
           />
           <span
             className="font-semibold text-zinc-100 tracking-tight text-base"
