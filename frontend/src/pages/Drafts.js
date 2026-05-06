@@ -155,6 +155,7 @@ export default function Drafts({ onReview }) {
           )}
           <Button variant="secondary" size="sm" onClick={load} data-testid="refresh-drafts-button">
             <RefreshCw className="w-3.5 h-3.5" />
+            Refresh
           </Button>
         </div>
       </div>
