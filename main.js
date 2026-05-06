@@ -7,7 +7,7 @@ const log = getLogger('main');
 
 async function main() {
   log.info('Starting OFM Bot');
-  initDb();
+  await initDb();
 
   const scheduler = new Scheduler();
   await scheduler.start();

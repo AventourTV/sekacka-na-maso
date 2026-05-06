@@ -2,20 +2,6 @@
 'use strict';
 /**
  * CLI for managing tenants and reviewing pending drafts.
- *
- * Usage examples:
- *   node tenantManager.js add --name acme --of-user-id 123 --of-cookie '...' --of-x-bc '...'
- *   node tenantManager.js list
- *   node tenantManager.js show <id>
- *   node tenantManager.js update <id> --human-review true --poll 30
- *   node tenantManager.js disable <id>
- *   node tenantManager.js enable  <id>
- *   node tenantManager.js delete  <id>
- *   node tenantManager.js drafts list [--tenant <id>]
- *   node tenantManager.js drafts review [--tenant <id>]
- *   node tenantManager.js drafts approve <draftId>
- *   node tenantManager.js drafts reject  <draftId>
- *   node tenantManager.js keygen
  */
 
 const readline = require('readline');
@@ -68,15 +54,15 @@ function ask(rl, question) {
 // Commands
 // ---------------------------------------------------------------------------
 
-function cmdAdd(argv) {
-  initDb();
-  if (getTenantByName(argv.name)) {
+async function cmdAdd(argv) {
+  await initDb();
+  if (await getTenantByName(argv.name)) {
     console.error(`Tenant '${argv.name}' already exists`); process.exit(1);
   }
   let prompt = argv.prompt || DEFAULT_SYSTEM_PROMPT;
   if (argv['prompt-file']) prompt = fs.readFileSync(argv['prompt-file'], 'utf8');
 
-  const id = createTenant({
+  const id = await createTenant({
     name: argv.name,
     of_user_id: argv['of-user-id'],
     of_cookie_encrypted: argv['of-cookie'] ? encrypt(argv['of-cookie']) : '',
@@ -88,15 +74,16 @@ function cmdAdd(argv) {
     reply_delay_min_seconds: argv['delay-min'] || DEFAULT_REPLY_DELAY_MIN,
     reply_delay_max_seconds: argv['delay-max'] || DEFAULT_REPLY_DELAY_MAX,
     history_limit: argv['history-limit'] || DEFAULT_HISTORY_LIMIT,
-    human_review_mode: parseBool(argv['human-review']) ?? DEFAULT_HUMAN_REVIEW ? 1 : 0,
+    human_review_mode: parseBool(argv['human-review']) ?? (DEFAULT_HUMAN_REVIEW ? 1 : 0),
   });
   console.log(`Created tenant ${id} (${argv.name})`);
+  process.exit(0);
 }
 
-function cmdList() {
-  initDb();
-  const rows = getAllTenants();
-  if (!rows.length) { console.log('(no tenants)'); return; }
+async function cmdList() {
+  await initDb();
+  const rows = await getAllTenants();
+  if (!rows.length) { console.log('(no tenants)'); process.exit(0); }
   console.log(`${'ID'.padEnd(34)} ${'NAME'.padEnd(24)} ${'ON'.padEnd(5)} ${'POLL'.padEnd(6)} REVIEW`);
   for (const t of rows) {
     console.log(
@@ -104,18 +91,20 @@ function cmdList() {
       `${String(t.poll_interval_seconds).padEnd(6)} ${!!t.human_review_mode}`
     );
   }
+  process.exit(0);
 }
 
-function cmdShow(argv) {
-  initDb();
-  const t = getTenant(argv.id);
+async function cmdShow(argv) {
+  await initDb();
+  const t = await getTenant(argv.id);
   if (!t) { console.error(`Tenant ${argv.id} not found`); process.exit(1); }
   printTenant(t, !!argv.secrets);
+  process.exit(0);
 }
 
-function cmdUpdate(argv) {
-  initDb();
-  const t = getTenant(argv.id);
+async function cmdUpdate(argv) {
+  await initDb();
+  const t = await getTenant(argv.id);
   if (!t) { console.error(`Tenant ${argv.id} not found`); process.exit(1); }
   const fields = {};
   if (argv.name)             fields.name = argv.name;
@@ -132,52 +121,57 @@ function cmdUpdate(argv) {
   if (argv['history-limit']) fields.history_limit = argv['history-limit'];
   const hr = parseBool(argv['human-review']);
   if (hr !== null)           fields.human_review_mode = hr ? 1 : 0;
-  if (!Object.keys(fields).length) { console.log('Nothing to update'); return; }
-  updateTenant(argv.id, fields);
+  if (!Object.keys(fields).length) { console.log('Nothing to update'); process.exit(0); }
+  await updateTenant(argv.id, fields);
   console.log(`Updated tenant ${argv.id}`);
+  process.exit(0);
 }
 
-function cmdSetEnabled(id, enabled) {
-  initDb();
-  const t = getTenant(id);
+async function cmdSetEnabled(id, enabled) {
+  await initDb();
+  const t = await getTenant(id);
   if (!t) { console.error(`Tenant ${id} not found`); process.exit(1); }
-  updateTenant(id, { enabled: enabled ? 1 : 0 });
+  await updateTenant(id, { enabled: enabled ? 1 : 0 });
   console.log(`Tenant ${id} enabled=${enabled}`);
+  process.exit(0);
 }
 
-function cmdDelete(argv) {
-  initDb();
-  if (!getTenant(argv.id)) { console.error(`Tenant ${argv.id} not found`); process.exit(1); }
-  deleteTenant(argv.id);
+async function cmdDelete(argv) {
+  await initDb();
+  if (!await getTenant(argv.id)) { console.error(`Tenant ${argv.id} not found`); process.exit(1); }
+  await deleteTenant(argv.id);
   console.log(`Deleted tenant ${argv.id}`);
+  process.exit(0);
 }
 
 function cmdKeyGen() {
   console.log(require('crypto').randomBytes(32).toString('hex'));
+  process.exit(0);
 }
 
 // ---------------------------------------------------------------------------
 // Draft review
 // ---------------------------------------------------------------------------
 
-function cmdDraftsList(argv) {
-  initDb();
-  const drafts = getPendingDrafts(argv.tenant || null);
-  if (!drafts.length) { console.log('(no pending drafts)'); return; }
+async function cmdDraftsList(argv) {
+  await initDb();
+  const drafts = await getPendingDrafts(argv.tenant || null);
+  if (!drafts.length) { console.log('(no pending drafts)'); process.exit(0); }
   for (const d of drafts) {
     console.log(`#${d.id} tenant=${d.tenant_id.slice(0, 8)} fan=${d.fan_user_id} msg=${d.message_id}`);
     console.log(`  fan  : ${d.fan_message_text.slice(0, 120)}`);
     console.log(`  draft: ${d.draft_reply.slice(0, 120)}`);
     console.log();
   }
+  process.exit(0);
 }
 
 async function cmdDraftsReview(argv) {
-  initDb();
+  await initDb();
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 
   while (true) {
-    const drafts = getPendingDrafts(argv.tenant || null);
+    const drafts = await getPendingDrafts(argv.tenant || null);
     if (!drafts.length) { console.log('(no more pending drafts)'); break; }
     const d = drafts[0];
 
@@ -191,23 +185,23 @@ async function cmdDraftsReview(argv) {
 
     if (ans === 'q') break;
     if (ans === 's') continue;
-    if (ans === 'r') { updateDraftStatus(d.id, 'rejected'); console.log('Rejected.'); continue; }
+    if (ans === 'r') { await updateDraftStatus(d.id, 'rejected'); console.log('Rejected.'); continue; }
 
     let replyText = d.draft_reply;
     if (ans === 'e') {
       replyText = (await ask(rl, 'New reply text: ')).trim();
       if (!replyText) { console.log('Empty — skipping.'); continue; }
-      updateDraftStatus(d.id, 'pending', replyText);
+      await updateDraftStatus(d.id, 'pending', replyText);
     }
 
     if (ans === 'a' || ans === 'e') {
-      const tenant = getTenant(d.tenant_id);
-      if (!tenant) { updateDraftStatus(d.id, 'rejected'); console.log('Tenant gone.'); continue; }
+      const tenant = await getTenant(d.tenant_id);
+      if (!tenant) { await updateDraftStatus(d.id, 'rejected'); console.log('Tenant gone.'); continue; }
       const client = new OFClient(tenant, log);
       const ok = await client.sendMessage(d.fan_user_id, replyText);
       if (ok) {
-        markReplied(d.tenant_id, d.message_id);
-        updateDraftStatus(d.id, 'sent');
+        await markReplied(d.tenant_id, d.message_id);
+        await updateDraftStatus(d.id, 'sent');
         console.log('Sent.');
       } else {
         console.log('Send failed — left as pending.');
@@ -215,31 +209,34 @@ async function cmdDraftsReview(argv) {
     }
   }
   rl.close();
+  process.exit(0);
 }
 
 async function cmdDraftsApprove(argv) {
-  initDb();
-  const d = getDraft(argv.draftId);
+  await initDb();
+  const d = await getDraft(argv.draftId);
   if (!d) { console.error(`Draft ${argv.draftId} not found`); process.exit(1); }
-  const tenant = getTenant(d.tenant_id);
+  const tenant = await getTenant(d.tenant_id);
   if (!tenant) { console.error('Tenant not found'); process.exit(1); }
   const client = new OFClient(tenant, log);
   const ok = await client.sendMessage(d.fan_user_id, d.draft_reply);
   if (ok) {
-    markReplied(d.tenant_id, d.message_id);
-    updateDraftStatus(d.id, 'sent');
+    await markReplied(d.tenant_id, d.message_id);
+    await updateDraftStatus(d.id, 'sent');
     console.log('Sent.');
   } else {
     console.log('Send failed.');
   }
+  process.exit(0);
 }
 
-function cmdDraftsReject(argv) {
-  initDb();
-  const d = getDraft(argv.draftId);
+async function cmdDraftsReject(argv) {
+  await initDb();
+  const d = await getDraft(argv.draftId);
   if (!d) { console.error(`Draft ${argv.draftId} not found`); process.exit(1); }
-  updateDraftStatus(d.id, 'rejected');
+  await updateDraftStatus(d.id, 'rejected');
   console.log(`Draft ${argv.draftId} rejected.`);
+  process.exit(0);
 }
 
 // ---------------------------------------------------------------------------

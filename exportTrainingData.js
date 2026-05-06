@@ -103,9 +103,16 @@ async function main() {
     process.exit(1);
   }
 
-  initDb();
-
-  const tenants = allFlag ? getEnabledTenants() : [getTenant(tenantId)].filter(Boolean);
+  await initDb();
+ 
+  let tenants = [];
+  if (allFlag) {
+    tenants = await getEnabledTenants();
+  } else if (tenantId) {
+    const t = await getTenant(tenantId);
+    if (t) tenants.push(t);
+  }
+ 
   if (!tenants.length) { console.error('No tenants found'); process.exit(1); }
 
   let total = 0;

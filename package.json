@@ -6,14 +6,19 @@
   "scripts": {
     "start": "node main.js",
     "tenant": "node tenantManager.js",
-    "export": "node exportTrainingData.js"
+    "export": "node exportTrainingData.js",
+    "server": "node server.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.25.0",
     "axios": "^1.7.0",
     "axios-retry": "^4.0.0",
-    "better-sqlite3": "^11.0.0",
+    "body-parser": "^2.2.2",
+    "cors": "^2.8.6",
     "dotenv": "^16.0.0",
+    "express": "^5.2.1",
+    "express-sse": "^1.0.0",
+    "mysql2": "^3.22.3",
     "winston": "^3.11.0",
     "yargs": "^17.7.0"
   },

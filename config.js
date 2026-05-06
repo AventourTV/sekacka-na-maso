@@ -8,6 +8,14 @@ module.exports = {
   EXPORT_DIR: path.join(__dirname, 'exports'),
   DATABASE_FILE: process.env.DATABASE_FILE || path.join(__dirname, 'of_bot.db'),
 
+  // MySQL Configuration
+  MYSQL_HOST: process.env.MYSQLHOST || 'localhost',
+  MYSQL_PORT: parseInt(process.env.MYSQLPORT || '3306', 10),
+  MYSQL_USER: process.env.MYSQLUSER || 'root',
+  MYSQL_PASSWORD: process.env.MYSQLPASSWORD || '',
+  MYSQL_DATABASE: process.env.MYSQLDATABASE || 'of_bot',
+  MYSQL_URL: process.env.MYSQL_URL || '', // Optional fallback for connection string
+
   // Master key for encrypting OF cookies + per-tenant Anthropic keys at rest.
   // Generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
   ENCRYPTION_KEY: process.env.ENCRYPTION_KEY || '',

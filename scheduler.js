@@ -79,7 +79,7 @@ class TenantWorker {
     this.log.info(`Worker started for tenant '${this.tenantName}'`);
 
     while (!this._stopped) {
-      const tenant = getTenant(this.tenantId);
+      const tenant = await getTenant(this.tenantId);
       if (!tenant || !tenant.enabled) {
         this.log.info('Tenant disabled or removed — stopping worker');
         return;
@@ -169,7 +169,7 @@ class TenantWorker {
       const messageId = String(latestFanMsg.id || '');
       if (!messageId) return;
       
-      if (alreadyReplied(tenant.id, messageId)) {
+      if (await alreadyReplied(tenant.id, messageId)) {
         this.log.info(`Skipping ${name}: Already replied to message ${messageId}`);
         return;
       }
@@ -196,7 +196,7 @@ class TenantWorker {
       this.log.info(`AI reply generated for ${name}: "${reply}"`);
 
       if (tenant.human_review_mode) {
-        const draftId = queuePendingDraft({
+        const draftId = await queuePendingDraft({
           tenantId: tenant.id,
           fanUserId: fanId,
           messageId,
@@ -216,7 +216,7 @@ class TenantWorker {
       this.log.info(`Sending message to ${name}`);
       const sent = await client.sendMessage(fanId, reply);
       if (sent) {
-        markReplied(tenant.id, messageId);
+        await markReplied(tenant.id, messageId);
         this.log.info(`Message successfully sent to ${name}`);
       }
     } catch (err) {
@@ -240,12 +240,18 @@ class Scheduler {
 
   async start() {
     log.info('Scheduler starting');
-    this._refreshWorkers();
-    this._refreshTimer = setInterval(() => this._refreshWorkers(), TENANT_REFRESH_INTERVAL);
+    await this._refreshWorkers();
+    this._refreshTimer = setInterval(async () => {
+      try {
+        await this._refreshWorkers();
+      } catch (err) {
+        log.error(`Worker refresh error: ${err.message}`);
+      }
+    }, TENANT_REFRESH_INTERVAL);
   }
 
-  _refreshWorkers() {
-    const tenants = getEnabledTenants();
+  async _refreshWorkers() {
+    const tenants = await getEnabledTenants();
     const activeIds = new Set(tenants.map(t => t.id));
 
     // Stop workers for removed/disabled tenants
