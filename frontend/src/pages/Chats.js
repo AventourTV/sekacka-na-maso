@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { MessageSquare, Ban, CheckCircle, User, RefreshCw, ChevronLeft } from 'lucide-react';
+import { MessageSquare, Ban, CheckCircle, User, RefreshCw, ChevronLeft, Bot, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -29,6 +29,7 @@ export default function Chats() {
   const [loadingChats, setLoadingChats] = useState(false);
   const [loadingMsgs, setLoadingMsgs] = useState(false);
   const [blockLoading, setBlockLoading] = useState(false);
+  const [triggerLoading, setTriggerLoading] = useState(false);
 
   useEffect(() => {
     api.getTenants().then(setTenants).catch(() => {});
@@ -70,6 +71,21 @@ export default function Chats() {
     setSelectedChat(chat);
     const fanId = String(chat?.fan?.id || '');
     if (fanId) loadMessages(selectedTenant.id, fanId);
+  };
+
+  const handleTriggerReply = async () => {
+    if (!selectedTenant || !fanId) return;
+    setTriggerLoading(true);
+    try {
+      const result = await api.triggerReply(selectedTenant.id, fanId);
+      toast.success('AI reply sent successfully');
+      // Refresh messages to show the sent reply
+      await loadMessages(selectedTenant.id, fanId);
+    } catch (e) {
+      toast.error(`Failed to send AI reply: ${e.message}`);
+    } finally {
+      setTriggerLoading(false);
+    }
   };
 
   const handleBlock = async (chat) => {
@@ -219,6 +235,20 @@ export default function Chats() {
                         data-testid="refresh-messages-button"
                       >
                         <RefreshCw className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={handleTriggerReply}
+                        disabled={triggerLoading || selectedChat._blocked}
+                        data-testid="trigger-ai-reply-button"
+                        title={selectedChat._blocked ? 'Fan is blocked — unblock first' : 'Generate and send an AI reply now'}
+                      >
+                        {triggerLoading ? (
+                          <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Sending...</>
+                        ) : (
+                          <><Bot className="w-3.5 h-3.5" /> Send AI Reply</>
+                        )}
                       </Button>
                       <Button
                         variant={selectedChat._blocked ? 'success' : 'danger'}

@@ -1,11 +1,12 @@
 from fastapi import FastAPI, HTTPException, Request, Query
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
-import sqlite3, os, subprocess, json, asyncio, threading, uuid
-from typing import Optional
+import sqlite3, os, subprocess, json, asyncio, threading, uuid, re
+from typing import Optional, List, Dict
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import httpx
+import anthropic as _anthropic
 
 load_dotenv()
 
@@ -22,6 +23,7 @@ BOT_DB = os.environ.get("BOT_DB_FILE", "/app/of_bot.db")
 BOT_DIR = os.environ.get("BOT_DIR", "/app")
 ENC_KEY_HEX = os.environ.get("ENCRYPTION_KEY", "")
 OF_API_KEY = os.environ.get("OF_API_KEY", "")
+SHARED_ANTHROPIC_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 OF_BASE = "https://app.onlyfansapi.com/api"
 LOG_DIR = os.path.join(BOT_DIR, "logs")
 
@@ -595,6 +597,136 @@ def update_draft(did: int, body: DraftBody):
     d = conn.execute("SELECT * FROM pending_drafts WHERE id=?", (did,)).fetchone()
     conn.close()
     return row(d)
+
+
+# ── Trigger Reply helpers ─────────────────────────────────────────────────────
+
+def _is_from_fan(msg: dict, fan_id: str) -> bool:
+    """Mirror scheduler.js isFromFan logic."""
+    if msg.get("is_from_me") is False:
+        return True
+    if msg.get("fromUser") is True:
+        return True
+    fu = msg.get("fromUser")
+    if isinstance(fu, dict) and fan_id:
+        if str(fu.get("id", "")) == str(fan_id):
+            return True
+    return False
+
+
+def _build_conversation(messages: List[dict], fan_id: str) -> List[Dict[str, str]]:
+    """Build Claude-compatible conversation history from OF messages."""
+    history: List[Dict[str, str]] = []
+    for msg in messages:
+        text = re.sub(r"<[^>]*>", "", (msg.get("text") or "")).strip()
+        if not text:
+            continue
+        role = "user" if _is_from_fan(msg, fan_id) else "assistant"
+        if history and history[-1]["role"] == role:
+            history[-1]["content"] += f"\n{text}"
+        else:
+            history.append({"role": role, "content": text})
+    return history
+
+
+def _claude_api_key(tenant: dict) -> Optional[str]:
+    """Return the Anthropic API key for a tenant (per-tenant preferred, else shared)."""
+    per_tenant = decrypt_val(tenant.get("anthropic_api_key_encrypted") or "")
+    return per_tenant or SHARED_ANTHROPIC_KEY or None
+
+
+async def _generate_reply(tenant: dict, conversation: List[Dict[str, str]]) -> Optional[str]:
+    """Call Claude to generate a reply for the given conversation."""
+    api_key = _claude_api_key(tenant)
+    if not api_key:
+        raise HTTPException(503, "No Anthropic API key configured (set ANTHROPIC_API_KEY in .env or add a per-tenant key)")
+
+    history_limit = tenant.get("history_limit", 10)
+    trimmed = conversation[-history_limit:]
+    # Ensure first message is from user
+    while trimmed and trimmed[0]["role"] != "user":
+        trimmed = trimmed[1:]
+    if not trimmed:
+        return None
+
+    client = _anthropic.AsyncAnthropic(api_key=api_key)
+    resp = await client.messages.create(
+        model=tenant.get("claude_model") or "claude-sonnet-4-6",
+        max_tokens=512,
+        system=tenant.get("system_prompt") or "",
+        messages=trimmed,
+    )
+    return resp.content[0].text.strip() if resp.content else None
+
+
+# ── Trigger Reply endpoint ────────────────────────────────────────────────────
+
+@app.post("/api/tenants/{tid}/chats/{fan_id}/trigger-reply")
+async def trigger_reply(tid: str, fan_id: str):
+    """Manually trigger the bot to generate an AI reply and send it to a fan."""
+    if not OF_API_KEY:
+        raise HTTPException(503, "OF_API_KEY not configured in backend .env")
+
+    conn = get_db()
+    t = conn.execute("SELECT * FROM tenants WHERE id=?", (tid,)).fetchone()
+    conn.close()
+    if not t:
+        raise HTTPException(404, "Tenant not found")
+    tenant = row(t)
+    of_uid = tenant["of_user_id"]
+
+    # 1. Fetch message history from OF API
+    async with httpx.AsyncClient(timeout=30) as c:
+        resp = await c.get(
+            f"{OF_BASE}/{of_uid}/chats/{fan_id}/messages?limit=30",
+            headers={"Authorization": f"Bearer {OF_API_KEY}", "Accept": "application/json"},
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        messages = data.get("data", []) if isinstance(data, dict) else (data if isinstance(data, list) else [])
+
+    if not messages:
+        raise HTTPException(400, "No messages found for this fan")
+
+    # OF API returns newest-first; reverse to chronological order
+    messages = list(reversed(messages))
+
+    # 2. Build Claude conversation
+    conversation = _build_conversation(messages, fan_id)
+    if not conversation:
+        raise HTTPException(400, "Could not build conversation history")
+    if conversation[-1]["role"] != "user":
+        raise HTTPException(400, "Last message is not from the fan — nothing to reply to")
+
+    # 3. Generate AI reply
+    reply = await _generate_reply(tenant, conversation)
+    if not reply:
+        raise HTTPException(500, "AI failed to generate a reply")
+
+    # 4. Send the message via OF API
+    async with httpx.AsyncClient(timeout=30) as c:
+        send_resp = await c.post(
+            f"{OF_BASE}/{of_uid}/chats/{fan_id}/messages",
+            headers={"Authorization": f"Bearer {OF_API_KEY}", "Accept": "application/json"},
+            json={"text": reply},
+        )
+        if send_resp.status_code >= 400:
+            raise HTTPException(500, f"OnlyFans API call failed: {send_resp.text}")
+
+    # 5. Mark latest fan message as replied
+    latest_fan_msg = next(
+        (m for m in reversed(messages) if _is_from_fan(m, fan_id)), None
+    )
+    if latest_fan_msg and latest_fan_msg.get("id"):
+        conn = get_db()
+        conn.execute(
+            "INSERT OR IGNORE INTO replied_messages (tenant_id, message_id) VALUES (?,?)",
+            (tid, str(latest_fan_msg["id"])),
+        )
+        conn.commit()
+        conn.close()
+
+    return {"ok": True, "reply": reply}
 
 
 # ── Logs ─────────────────────────────────────────────────────────────────────

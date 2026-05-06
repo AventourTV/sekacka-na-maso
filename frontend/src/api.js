@@ -30,6 +30,7 @@ export const api = {
 
   getChats: (tid) => req('GET', `/api/tenants/${tid}/chats`),
   getMessages: (tid, fanId) => req('GET', `/api/tenants/${tid}/chats/${fanId}/messages`),
+  triggerReply: (tid, fanId) => req('POST', `/api/tenants/${tid}/chats/${fanId}/trigger-reply`),
   blockUser: (tid, fanId, fanName) =>
     req('POST', `/api/tenants/${tid}/block/${fanId}?fan_name=${encodeURIComponent(fanName || '')}`),
   unblockUser: (tid, fanId) => req('DELETE', `/api/tenants/${tid}/block/${fanId}`),

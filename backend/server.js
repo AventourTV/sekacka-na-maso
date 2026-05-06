@@ -13,7 +13,36 @@ const {
   markReplied, getStats, getBlockedUsers, blockUser, unblockUser, isBlocked
 } = require('./database');
 const OFClient = require('./ofClient');
+const { generateReply } = require('./claudeClient');
 const config = require('./config');
+
+// ---------------------------------------------------------------------------
+// Shared helpers (mirrors scheduler.js logic)
+// ---------------------------------------------------------------------------
+
+function isFromFanMsg(msg, fanId) {
+  if (msg.is_from_me === false) return true;
+  if (msg.fromUser === true) return true;
+  if (msg.fromUser && typeof msg.fromUser === 'object' && fanId) {
+    if (String(msg.fromUser.id) === String(fanId)) return true;
+  }
+  return false;
+}
+
+function buildConversation(messages, fanId) {
+  const history = [];
+  for (const msg of messages) {
+    let text = (msg.text || '').trim().replace(/<[^>]*>/g, '');
+    if (!text) continue;
+    const role = isFromFanMsg(msg, fanId) ? 'user' : 'assistant';
+    if (history.length > 0 && history[history.length - 1].role === role) {
+      history[history.length - 1].content += `\n${text}`;
+    } else {
+      history.push({ role, content: text });
+    }
+  }
+  return history;
+}
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -315,6 +344,60 @@ app.get('/api/tenants/:id/chats/:fan_id/messages', async (req, res) => {
     const messages = await client.getMessages(req.params.fan_id, 30);
     res.json({ messages });
   } catch (err) {
+    res.status(500).json({ detail: err.message });
+  }
+});
+
+app.post('/api/tenants/:id/chats/:fan_id/trigger-reply', async (req, res) => {
+  if (!config.OF_API_KEY) {
+    return res.status(503).json({ detail: 'OF_API_KEY not configured in backend .env' });
+  }
+  const t = await getTenant(req.params.id);
+  if (!t) return res.status(404).json({ detail: 'Tenant not found' });
+
+  const fanId = req.params.fan_id;
+
+  try {
+    const client = new OFClient(t, log);
+
+    // Fetch conversation history
+    const messages = await client.getMessages(fanId, 30);
+    if (!messages.length) {
+      return res.status(400).json({ detail: 'No messages found for this fan' });
+    }
+
+    // Build Claude conversation
+    const conversation = buildConversation(messages, fanId);
+    if (!conversation.length) {
+      return res.status(400).json({ detail: 'Could not build conversation history' });
+    }
+    if (conversation[conversation.length - 1].role !== 'user') {
+      return res.status(400).json({ detail: 'Last message is not from the fan — nothing to reply to' });
+    }
+
+    // Generate AI reply
+    log.info(`Manually triggering AI reply for tenant=${t.name} fan=${fanId}`);
+    const reply = await generateReply(t, conversation, log);
+    if (!reply) {
+      return res.status(500).json({ detail: 'AI failed to generate a reply' });
+    }
+
+    // Send the message
+    const sent = await client.sendMessage(fanId, reply);
+    if (!sent) {
+      return res.status(500).json({ detail: 'OnlyFans API call failed when sending reply' });
+    }
+
+    // Find latest fan message id to mark as replied
+    const latestFanMsg = [...messages].reverse().find(m => isFromFanMsg(m, fanId));
+    if (latestFanMsg?.id) {
+      await markReplied(t.id, String(latestFanMsg.id));
+    }
+
+    log.info(`Manual AI reply sent to fan=${fanId} for tenant=${t.name}: "${reply}"`);
+    res.json({ ok: true, reply });
+  } catch (err) {
+    log.error(`trigger-reply error: ${err.message}`);
     res.status(500).json({ detail: err.message });
   }
 });
