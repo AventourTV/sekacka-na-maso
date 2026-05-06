@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard, Users, MessageSquare, FileText, Terminal, Bot,
+  LayoutDashboard, Users, MessageSquare, FileText, Terminal,
 } from 'lucide-react';
 
 const NAV = [
@@ -22,9 +22,11 @@ export function Layout({ children, pendingDrafts = 0 }) {
       >
         {/* Brand */}
         <div className="h-16 border-b border-white/5 flex items-center gap-2.5 px-5">
-          <div className="w-7 h-7 rounded-lg bg-blue-500/20 border border-blue-400/30 flex items-center justify-center">
-            <Bot className="w-4 h-4 text-blue-400" />
-          </div>
+          <img
+            src="/ofm_logo.svg"
+            alt="OFM logo"
+            className="w-7 h-7 rounded-lg"
+          />
           <span
             className="font-semibold text-zinc-100 tracking-tight text-sm"
             style={{ fontFamily: "'Space Grotesk', sans-serif" }}
