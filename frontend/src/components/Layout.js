@@ -28,7 +28,7 @@ export function Layout({ children, pendingDrafts = 0 }) {
             className="w-7 h-7 rounded-lg"
           />
           <span
-            className="font-semibold text-zinc-100 tracking-tight text-sm"
+            className="font-semibold text-zinc-100 tracking-tight text-base"
             style={{ fontFamily: "'Space Grotesk', sans-serif" }}
           >
             Wulpko
