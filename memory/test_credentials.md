@@ -9,7 +9,7 @@ No authentication required — dashboard is open access (as requested by user).
 | OF_API_KEY | /app/backend/.env | OnlyFans API key from app.onlyfansapi.com |
 
 ## API Base URL
-https://9d05ba4f-dc79-4f69-9cd3-948e3fb39319.preview.emergentagent.com
+https://bot-response-feature.preview.emergentagent.com
 
 ## Test Account (created during testing, deleted)
 No persistent test data — all accounts are user-created.
