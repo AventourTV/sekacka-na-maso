@@ -42,4 +42,7 @@ module.exports = {
   MAX_CONCURRENT_TENANTS: parseInt(process.env.MAX_CONCURRENT_TENANTS || '0', 10),
   // How often to re-read tenant list from DB (ms)
   TENANT_REFRESH_INTERVAL: parseInt(process.env.TENANT_REFRESH_INTERVAL || '60', 10) * 1000,
+  
+  // CORS
+  CORS_ORIGIN: process.env.CORS_ORIGIN || '*',
 };

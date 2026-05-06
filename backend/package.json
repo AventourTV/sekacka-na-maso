@@ -4,10 +4,10 @@
   "description": "Multi-tenant OnlyFans chat automation bot powered by Claude",
   "main": "main.js",
   "scripts": {
-    "start": "node main.js",
+    "start": "node server.js",
+    "bot": "node main.js",
     "tenant": "node tenantManager.js",
-    "export": "node exportTrainingData.js",
-    "server": "node server.js"
+    "export": "node exportTrainingData.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.25.0",

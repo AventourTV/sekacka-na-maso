@@ -19,7 +19,11 @@ const app = express();
 const port = process.env.PORT || 3000;
 const log = getLogger('api');
 
-app.use(cors());
+app.use(cors({
+  origin: config.CORS_ORIGIN === '*' ? '*' : config.CORS_ORIGIN.split(','),
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(bodyParser.json());
 
 let botProcess = null;
@@ -470,13 +474,42 @@ app.get('/api/logs/stream', (req, res) => {
 // ---------------------------------------------------------------------------
 
 async function startServer() {
-  await initDb();
+  console.log('=============================================');
+  console.log('[STARTUP] OFM Bot API Server starting...');
+  console.log('=============================================');
+  console.log(`[STARTUP] PORT: ${port}`);
+  console.log(`[STARTUP] CORS_ORIGIN: ${config.CORS_ORIGIN}`);
+  console.log(`[STARTUP] MYSQL_HOST: ${config.MYSQL_HOST}`);
+  console.log(`[STARTUP] MYSQL_PORT: ${config.MYSQL_PORT}`);
+  console.log(`[STARTUP] MYSQL_DATABASE: ${config.MYSQL_DATABASE}`);
+  console.log(`[STARTUP] MYSQL_USER: ${config.MYSQL_USER}`);
+  console.log(`[STARTUP] MYSQL_URL set: ${!!config.MYSQL_URL}`);
+  console.log(`[STARTUP] ENCRYPTION_KEY set: ${!!config.ENCRYPTION_KEY}`);
+  console.log(`[STARTUP] ANTHROPIC_API_KEY set: ${!!config.SHARED_ANTHROPIC_API_KEY}`);
+  console.log(`[STARTUP] OF_API_KEY set: ${!!config.OF_API_KEY}`);
+  console.log('---------------------------------------------');
+
+  try {
+    console.log('[STARTUP] Connecting to database...');
+    await initDb();
+    console.log('[STARTUP] ✅ Database connected and schema ready.');
+  } catch (dbErr) {
+    console.error('[STARTUP] ❌ DATABASE CONNECTION FAILED:', dbErr.message);
+    console.error('[STARTUP] Full error:', dbErr);
+    process.exit(1);
+  }
+
   app.listen(port, () => {
+    console.log('=============================================');
+    console.log(`[STARTUP] ✅ API Server listening on port ${port}`);
+    console.log('=============================================');
     log.info(`API Server listening on port ${port}`);
   });
 }
 
 startServer().catch(err => {
+  console.error('[STARTUP] ❌ FATAL ERROR:', err.message);
+  console.error('[STARTUP] Stack:', err.stack);
   log.error(`Failed to start server: ${err.message}`);
   process.exit(1);
 });

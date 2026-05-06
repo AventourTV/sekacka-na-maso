@@ -21,12 +21,15 @@ async function getPool() {
       connectionLimit: 10,
       queueLimit: 0
     };
+    console.log(`[DB] Creating connection pool for: ${config.host || 'MYSQL_URL'}`);
     _pool = mysql.createPool(config);
+    console.log('[DB] Pool created successfully.');
   }
   return _pool;
 }
 
 async function initDb() {
+  console.log('[DB] Initializing database schema...');
   const pool = await getPool();
   
   await pool.query(`
@@ -87,6 +90,7 @@ async function initDb() {
       FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
     );
   `);
+  console.log('[DB] Database schema initialized successfully.');
 }
 
 // ---------------------------------------------------------------------------
